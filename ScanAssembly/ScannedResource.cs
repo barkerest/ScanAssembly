@@ -9,10 +9,11 @@ public class ScannedResource : IComparable<ScannedResource>, IChangeScanner<Scan
         
     }
 
-    public ScannedResource(string name, Stream stream)
+    public ScannedResource(string name, Stream stream, ScanContext ctx)
     {
         var buf = new byte[2048];
         long len = 0;
+        ctx.InfoMessage($"Found resource: {name}");
         Name = name;
 
         var hash = SHA256.Create();

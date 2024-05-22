@@ -8,39 +8,32 @@ namespace ScanAssembly;
 public class ScannedAssembly : IComparable<ScannedAssembly>, IChangeScanner<ScannedAssembly>
 {
     public ScannedAssembly() { }
-
-    internal ScannedAssembly(string asmFileName)
+    
+    internal ScannedAssembly(ScanContext ctx)
     {
-        var file  = new FileInfo(asmFileName);
-        if (!file.Exists)
-        {
-            return;
-        }
-        
+        var asm  = ctx.Assembly;
+        var loc  = asm.Location;
+        var file = new FileInfo(loc);
         using (var stream = file.OpenRead())
         {
             var hash = SHA256.Create().ComputeHash(stream);
             Hash = file.Length.ToString("x10") + string.Join("", hash.Select(x => x.ToString("x2")));
         }
-    
-        using (var ctx = new ScanContext(asmFileName))
-        {
-            var asm     = ctx.Assembly;
-            var asmName = asm.GetName();
-            Name    = asmName.Name    ?? Path.GetFileName(asmFileName);
-            Version = asmName.Version ?? new Version();
-            Types = asm.GetExportedTypes()
-                       .Select(x => new ScannedType(x))
-                       .OrderBy(x => x.FullName)
-                       .ToList();
+        
+        var asmName = asm.GetName();
+        Name    = asmName.Name    ?? Path.GetFileName(loc);
+        Version = asmName.Version ?? new Version();
+        Types = asm.GetExportedTypes()
+                   .Select(x => new ScannedType(x, ctx))
+                   .OrderBy(x => x.FullName)
+                   .ToList();
 
-            Resources = asm.GetManifestResourceNames()
-                           .Select(
-                               n => new ScannedResource(n, asm.GetManifestResourceStream(n) ?? new MemoryStream())
-                           )
-                           .OrderBy(x => x.Name)
-                           .ToArray();
-        }
+        Resources = asm.GetManifestResourceNames()
+                       .Select(
+                           n => new ScannedResource(n, asm.GetManifestResourceStream(n) ?? new MemoryStream(), ctx)
+                       )
+                       .OrderBy(x => x.Name)
+                       .ToArray();
     }
     
     public string Name { get; set; } = "";

@@ -6,8 +6,9 @@ public class ScannedField : IComparable<ScannedField>, IChangeScanner<ScannedFie
 {
     public ScannedField() { }
 
-    internal ScannedField(FieldInfo f)
+    internal ScannedField(FieldInfo f, ScanContext ctx)
     {
+        ctx.InfoMessage($"Found field: {f.Name}");
         Name        = f.Name;
         TypeName    = f.FieldType.FullName ?? f.FieldType.Name;
         IsStatic    = f.IsStatic;

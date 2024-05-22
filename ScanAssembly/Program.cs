@@ -42,8 +42,13 @@ public class Program
             Console.WriteLine("File not found.");
             return 7;
         }
-        
-        var asmScan = new ScannedAssembly(asmFile);
+
+        using var context = new ScanContext(asmFile);
+        #if DEBUG
+        context.InfoMessage = s => Console.WriteLine($"INFO: {s}");
+        #endif
+
+        var asmScan = context.ScannedAssembly;
 
         if (args.Length < 2)
         {

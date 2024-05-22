@@ -6,7 +6,7 @@ public class ScannedMethod : IComparable<ScannedMethod>, IChangeScanner<ScannedM
 {
     public ScannedMethod() { }
 
-    private ScannedMethod(string baseName, Type returnType, MethodBase m)
+    private ScannedMethod(string baseName, Type returnType, MethodBase m, ScanContext ctx)
     {
         TypeName    = returnType.FullName ?? returnType.Name;
         IsStatic    = m.IsStatic;
@@ -29,14 +29,14 @@ public class ScannedMethod : IComparable<ScannedMethod>, IChangeScanner<ScannedM
                + "("
                + string.Join(",", Parameters.Select(x => x.TypeName))
                + ")";
-        
+        ctx.InfoMessage($"Found method: {Name}");
     }
     
-    internal ScannedMethod(MethodInfo m) : this(m.Name, m.ReturnType, m)
+    internal ScannedMethod(MethodInfo m, ScanContext ctx) : this(m.Name, m.ReturnType, m, ctx)
     {
     }
 
-    internal ScannedMethod(ConstructorInfo c) : this(".ctor", typeof(void), c)
+    internal ScannedMethod(ConstructorInfo c, ScanContext ctx) : this(".ctor", typeof(void), c, ctx)
     {
     }
 

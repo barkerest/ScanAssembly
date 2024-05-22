@@ -6,9 +6,10 @@ public class ScannedType : IComparable<ScannedType>, IChangeScanner<ScannedType>
 {
     public ScannedType() { }
 
-    internal ScannedType(Type t)
+    internal ScannedType(Type t, ScanContext ctx)
     {
         FullName    = t.FullName ?? t.Name;
+        ctx.InfoMessage($"Found type: {FullName}");
         IsInterface = t.IsInterface;
         IsStruct    = t.IsValueType;
         IsAbstract  = t.IsAbstract;
@@ -17,24 +18,24 @@ public class ScannedType : IComparable<ScannedType>, IChangeScanner<ScannedType>
         Properties = t.GetProperties(
                           BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance | BindingFlags.FlattenHierarchy
                       )
-                      .Select(x => new ScannedProperty(x))
+                      .Select(x => new ScannedProperty(x, ctx))
                       .Where(x => x.PublicRead || x.ProtectedRead || x.PublicWrite || x.ProtectedWrite)
                       .OrderBy(x => x.Name)
                       .ToList();
 
         Fields = t.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance | BindingFlags.FlattenHierarchy)
-                  .Select(x => new ScannedField(x))
+                  .Select(x => new ScannedField(x, ctx))
                   .Where(x => x.IsPublic || x.IsProtected)
                   .OrderBy(x => x.Name)
                   .ToList();
 
         Methods = t.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.FlattenHierarchy)
-                   .Select(x => new ScannedMethod(x))
+                   .Select(x => new ScannedMethod(x, ctx))
                    .Concat(
                        t.GetMethods(
                             BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance | BindingFlags.FlattenHierarchy
                         )
-                        .Select(x => new ScannedMethod(x))
+                        .Select(x => new ScannedMethod(x, ctx))
                    )
                    .Where(x => x.IsPublic || x.IsProtected)
                    .OrderBy(x => x.Name)

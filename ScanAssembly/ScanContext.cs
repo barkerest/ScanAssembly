@@ -5,15 +5,22 @@ namespace ScanAssembly;
 
 public class ScanContext : IDisposable
 {
+    private static   void                Blackhole(string s) {}
+    
     private readonly AssemblyLoadContext _loadContext;
     
     public string AssemblyFilePath { get; }
 
-    private readonly string    _assemblyDir;
-    private readonly string    _sdkDir;
-    private          Assembly? _assembly;
+    private readonly string           _assemblyDir;
+    private readonly string           _sdkDir;
+    private          Assembly?        _assembly;
+    private          ScannedAssembly? _scannedAssembly;
 
     public Assembly Assembly => _assembly ??= _loadContext.LoadFromAssemblyPath(AssemblyFilePath);
+
+    public ScannedAssembly ScannedAssembly => _scannedAssembly ??= new ScannedAssembly(this);
+
+    public Action<string> InfoMessage  { get; set; } = Blackhole;
     
     public ScanContext(string asmFilePath)
     {
@@ -36,6 +43,7 @@ public class ScanContext : IDisposable
                 if (fn.Equals(name, StringComparison.OrdinalIgnoreCase))
                 {
                     foundLocal = true;
+                    InfoMessage($"Found candidate in assembly directory: {fn}");
                     yield return asmFile;
                 }
             }
@@ -48,6 +56,7 @@ public class ScanContext : IDisposable
         // SDK structure: dotnet/shared/{SDK}/{VER}/{FILES}
         foreach (var sdk in Directory.GetDirectories(_sdkDir, "*", SearchOption.TopDirectoryOnly))
         {
+            var sdkName = Path.GetFileName(sdk);
             foreach (var verDir in Directory.GetDirectories(sdk, "*", SearchOption.TopDirectoryOnly))
             {
                 var ver = new Version(Path.GetFileName(verDir));
@@ -56,7 +65,11 @@ public class ScanContext : IDisposable
                     foreach (var asmFile in Directory.GetFiles(verDir, "*.dll", SearchOption.AllDirectories))
                     {
                         var fn = Path.GetFileNameWithoutExtension(asmFile);
-                        if (fn.Equals(name, StringComparison.OrdinalIgnoreCase)) yield return asmFile;
+                        if (fn.Equals(name, StringComparison.OrdinalIgnoreCase))
+                        {
+                            InfoMessage($"Found candidate in {sdkName} v{ver}: {fn}");
+                            yield return asmFile;
+                        }
                     }
                 }
             }
@@ -65,8 +78,10 @@ public class ScanContext : IDisposable
     
     private Assembly? LoadContextOnResolving(AssemblyLoadContext ctx, AssemblyName asmName)
     {
+        InfoMessage($"Attempting to resolve {asmName}.");
         var candidate = GetCandidates(asmName.Version, asmName.Name).MaxBy(x => x);
         if (string.IsNullOrEmpty(candidate)) return null;
+        InfoMessage($"Using candidate: {candidate}");
         return ctx.LoadFromAssemblyPath(candidate);
     }
 

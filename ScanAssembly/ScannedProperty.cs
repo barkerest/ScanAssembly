@@ -6,7 +6,7 @@ public class ScannedProperty : IComparable<ScannedProperty>, IChangeScanner<Scan
 {
     public ScannedProperty() { }
 
-    internal ScannedProperty(PropertyInfo p)
+    internal ScannedProperty(PropertyInfo p, ScanContext ctx)
     {
         var idx = p.GetIndexParameters();
         if (idx.Any())
@@ -20,6 +20,8 @@ public class ScannedProperty : IComparable<ScannedProperty>, IChangeScanner<Scan
         {
             Name = p.Name;
         }
+
+        ctx.InfoMessage($"Found property: {Name}");
 
         var getter = p.GetGetMethod();
         var setter = p.GetSetMethod();
