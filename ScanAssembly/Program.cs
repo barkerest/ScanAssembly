@@ -149,8 +149,7 @@ public class Program
                     return 0;
                 }
 
-                Console.WriteLine("The assembly interface has had major changes, recommend incrementing the major");
-                Console.WriteLine("version.");
+                Console.WriteLine("The assembly interface has had major changes, recommend incrementing the major version.");
                 return 4;
             }
             
@@ -165,8 +164,7 @@ public class Program
                     return 0;
                 }
 
-                Console.WriteLine("The assembly interface has had minor changes, recommend incrementing the minor");
-                Console.WriteLine("version.");
+                Console.WriteLine("The assembly interface has had minor changes, recommend incrementing the minor version.");
                 return 3;
             }
 
@@ -180,8 +178,7 @@ public class Program
                     return 0;
                 }
 
-                Console.WriteLine("The assembly interface has had negligible changes, recommend incrementing the");
-                Console.WriteLine("revision.");
+                Console.WriteLine("The assembly interface has had negligible changes, recommend incrementing the revision.");
                 return 2;
             }
 

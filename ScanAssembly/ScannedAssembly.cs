@@ -1,5 +1,7 @@
-﻿using System.Runtime.Loader;
+﻿using System.Reflection;
+using System.Runtime.Loader;
 using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 
 namespace ScanAssembly;
 
@@ -20,11 +22,10 @@ public class ScannedAssembly : IComparable<ScannedAssembly>, IChangeScanner<Scan
             var hash = SHA256.Create().ComputeHash(stream);
             Hash = file.Length.ToString("x10") + string.Join("", hash.Select(x => x.ToString("x2")));
         }
-        
-        var ctx = new AssemblyLoadContext("ScanContext", true);
-        try
+    
+        using (var ctx = new ScanContext(asmFileName))
         {
-            var asm     = ctx.LoadFromAssemblyPath(asmFileName);
+            var asm     = ctx.Assembly;
             var asmName = asm.GetName();
             Name    = asmName.Name    ?? Path.GetFileName(asmFileName);
             Version = asmName.Version ?? new Version();
@@ -40,12 +41,8 @@ public class ScannedAssembly : IComparable<ScannedAssembly>, IChangeScanner<Scan
                            .OrderBy(x => x.Name)
                            .ToArray();
         }
-        finally
-        {
-            ctx.Unload();
-        }
     }
-
+    
     public string Name { get; set; } = "";
 
     public Version Version { get; set; } = new();
@@ -70,6 +67,8 @@ public class ScannedAssembly : IComparable<ScannedAssembly>, IChangeScanner<Scan
         return string.Compare(Name, other.Name, StringComparison.Ordinal);
     }
 
+    
+    
     public IEnumerable<ScanChange> GetChangesFrom(ScannedAssembly original)
     {
         // If the hash is set and has not changed, there should be no changes.
