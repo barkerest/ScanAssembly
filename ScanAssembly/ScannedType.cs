@@ -15,24 +15,24 @@ public class ScannedType : IComparable<ScannedType>, IChangeScanner<ScannedType>
         IsSealed    = t.IsSealed;
 
         Properties = t.GetProperties(
-                          BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance
+                          BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance | BindingFlags.FlattenHierarchy
                       )
                       .Select(x => new ScannedProperty(x))
                       .Where(x => x.PublicRead || x.ProtectedRead || x.PublicWrite || x.ProtectedWrite)
                       .OrderBy(x => x.Name)
                       .ToList();
 
-        Fields = t.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance)
+        Fields = t.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance | BindingFlags.FlattenHierarchy)
                   .Select(x => new ScannedField(x))
                   .Where(x => x.IsPublic || x.IsProtected)
                   .OrderBy(x => x.Name)
                   .ToList();
 
-        Methods = t.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+        Methods = t.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.FlattenHierarchy)
                    .Select(x => new ScannedMethod(x))
                    .Concat(
                        t.GetMethods(
-                            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance
+                            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance | BindingFlags.FlattenHierarchy
                         )
                         .Select(x => new ScannedMethod(x))
                    )

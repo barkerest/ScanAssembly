@@ -1,4 +1,5 @@
 ﻿using System.Runtime.Loader;
+using System.Security.Cryptography;
 
 namespace ScanAssembly;
 
@@ -8,18 +9,34 @@ public class ScannedAssembly : IComparable<ScannedAssembly>, IChangeScanner<Scan
 
     internal ScannedAssembly(string asmFileName)
     {
+        var file  = new FileInfo(asmFileName);
+        if (!file.Exists)
+        {
+            return;
+        }
+        
+        using (var stream = file.OpenRead())
+        {
+            var hash = SHA256.Create().ComputeHash(stream);
+            Hash = file.Length.ToString("x10") + string.Join("", hash.Select(x => x.ToString("x2")));
+        }
+        
         var ctx = new AssemblyLoadContext("ScanContext", true);
         try
         {
-            var asm = ctx.LoadFromAssemblyPath(asmFileName);
-            Name = asm.GetName().Name ?? Path.GetFileName(asmFileName);
+            var asm     = ctx.LoadFromAssemblyPath(asmFileName);
+            var asmName = asm.GetName();
+            Name    = asmName.Name    ?? Path.GetFileName(asmFileName);
+            Version = asmName.Version ?? new Version();
             Types = asm.GetExportedTypes()
                        .Select(x => new ScannedType(x))
                        .OrderBy(x => x.FullName)
                        .ToList();
 
             Resources = asm.GetManifestResourceNames()
-                           .Select(n => new ScannedResource(n, asm.GetManifestResourceStream(n) ?? new MemoryStream()))
+                           .Select(
+                               n => new ScannedResource(n, asm.GetManifestResourceStream(n) ?? new MemoryStream())
+                           )
                            .OrderBy(x => x.Name)
                            .ToArray();
         }
@@ -31,6 +48,10 @@ public class ScannedAssembly : IComparable<ScannedAssembly>, IChangeScanner<Scan
 
     public string Name { get; set; } = "";
 
+    public Version Version { get; set; } = new();
+
+    public string Hash { get; set; } = "";
+    
     public ICollection<ScannedType>     Types     { get; set; } = new List<ScannedType>();
     public ICollection<ScannedResource> Resources { get; set; } = new List<ScannedResource>();
 
@@ -51,6 +72,13 @@ public class ScannedAssembly : IComparable<ScannedAssembly>, IChangeScanner<Scan
 
     public IEnumerable<ScanChange> GetChangesFrom(ScannedAssembly original)
     {
+        // If the hash is set and has not changed, there should be no changes.
+        if (!string.IsNullOrEmpty(Hash) && Hash.Equals(original.Hash, StringComparison.OrdinalIgnoreCase))
+        {
+            // informational only, we'll still check the exposed interface.
+            yield return new ScanChange(ScanChangeSeverity.None, "The assembly file hash is the same.");
+        }
+        
         var missingTypes = original.Types
                               .Where(x => !Types.Any(y => y.FullName.Equals(x.FullName, StringComparison.Ordinal)))
                               .ToArray();

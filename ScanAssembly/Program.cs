@@ -134,25 +134,75 @@ public class Program
                 Console.WriteLine(chg.Description);
             }
 
-            if (majCount > 0 || minCount > 0)
-            {
-                var (v, r) = majCount > 0 ? ("major", 4) : ("minor", 3);
+            // version changes already made.
+            var md = asmScan.Version.Major    - jsonScan.Version.Major;
+            var nd = asmScan.Version.Minor    - jsonScan.Version.Minor;
+            var rd = asmScan.Version.Revision - jsonScan.Version.Revision;
+            var bd = asmScan.Version.Build    - jsonScan.Version.Build;
 
-                Console.WriteLine(
-                    $"The assembly interface has had {v} changes, recommend incrementing {v} version."
-                );
-                return r;
+            if (majCount > 0)
+            {
+                if (md > 0)
+                {
+                    Console.WriteLine("The assembly has had major changes, and the major version has increased.");
+                    Console.WriteLine("No further version changes required.");
+                    return 0;
+                }
+
+                Console.WriteLine("The assembly interface has had major changes, recommend incrementing the major");
+                Console.WriteLine("version.");
+                return 4;
+            }
+            
+            if (minCount > 0)
+            {
+                 
+                if (md > 0 || (md == 0 && nd > 0))
+                {
+                    var vc = md > 0 ? "major" : "minor";
+                    Console.WriteLine($"The assembly has had minor changes, and the {vc} version has increased.");
+                    Console.WriteLine("No further version changes required.");
+                    return 0;
+                }
+
+                Console.WriteLine("The assembly interface has had minor changes, recommend incrementing the minor");
+                Console.WriteLine("version.");
+                return 3;
             }
 
             if (negCount > 0)
             {
-                Console.WriteLine(
-                    "The assembly interface has had negligible changes, recommend incrementing release or build version."
-                );
+                if (md > 0 || (md == 0 && nd > 0) || (md == 0 && nd == 0 && rd > 0))
+                {
+                    var vc = md > 0 ? "major" : nd > 0 ? "minor" : "revision";
+                    Console.WriteLine($"The assembly has had negligible changes, and the {vc} version has increased.");
+                    Console.WriteLine("No further version changes recommended.");
+                    return 0;
+                }
+
+                Console.WriteLine("The assembly interface has had negligible changes, recommend incrementing the");
+                Console.WriteLine("revision.");
                 return 2;
             }
 
-            Console.WriteLine("The assembly interface has not changed, recommend incrementing build version only.");
+            if (asmScan.Hash.Equals(jsonScan.Hash))
+            {
+                Console.WriteLine("The assembly has not changed.  No version changes are recommended.");
+                return 0;
+            }
+
+            Console.WriteLine("The assembly interface has not changed, but it has had content or code changes.");
+
+            if (md > 0 || (md == 0 && nd > 0) || (md == 0 && nd == 0 && rd > 0) ||
+                (md           == 0 && nd == 0             && rd == 0 && bd > 0))
+            {
+                var vc = md > 0 ? "major" : nd > 0 ? "minor" : rd > 0 ? "revision" : "build";
+                Console.WriteLine($"The {vc} version has increased.");
+                Console.WriteLine("No further version changes recommended.");
+                return 0;
+            }
+
+            Console.WriteLine("Recommend updating the build version.");
             return 1;
         }
     }
